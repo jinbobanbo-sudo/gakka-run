@@ -127,6 +127,11 @@ select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft)
 .margin .rev,.margin .orig{flex:none;border-radius:4px;padding:1px 7px;border:1.5px solid currentColor;font-size:.72rem}
 .margin .rev{color:var(--ng)}
 .margin .orig{color:var(--muted)}
+.margin .tags{display:flex;gap:6px;flex:none}
+.margin .hot,.margin .imp{flex:none;border-radius:4px;padding:1px 7px;font-size:.72rem;border:1.5px solid currentColor}
+.margin .hot{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.margin .imp{color:var(--c-struct)}
+.freq{font-size:.78rem;font-weight:700;color:var(--muted);margin:0}
 .body{display:flex;flex-direction:column;gap:14px;min-width:0}
 .topic{font-size:.75rem;font-weight:700;color:var(--muted)}
 .stmt{font-size:1.1rem;line-height:1.85;margin:0}
@@ -237,15 +242,16 @@ const nowStr=d=>{const t=new Date(d);return new Intl.DateTimeFormat("ja-JP",{tim
 let QS=[],ITEMS=[];
 function buildModel(){
   const map=new Map();
-  for(const r of qcache.rows){
+  const rows=qcache.h?qcache.d.map(a=>Object.fromEntries(qcache.h.map((k,i)=>[k,a[i]]))):qcache.rows;
+  for(const r of rows){
     const y=+r.exam_year,no=+r.no,qid=`${y}-${r.subject}-${pad(no)}`;
-    if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,choices:[]});
+    if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,alt:+r.alt_choice||0,choices:[]});
     const q=map.get(qid);
-    q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",q});
+    q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",key:r.key||"",freq:+r.freq||0,imp:String(r.important)==="1",mc:String(r.mc_only)==="1",q});
   }
   QS=[...map.values()].filter(q=>S(q.s)).sort((a,b)=>b.y-a.y||SUBJ.indexOf(S(a.s))-SUBJ.indexOf(S(b.s))||a.no-b.no);
-  QS.forEach(q=>{q.choices.sort((a,b)=>a.choice-b.choice);q.rev=q.choices.some(c=>c.rev)});
-  ITEMS=QS.flatMap(q=>q.choices);
+  QS.forEach(q=>{q.choices.sort((a,b)=>a.choice-b.choice);q.rev=q.choices.some(c=>c.rev);q.mcOnly=q.choices.some(c=>c.mc);q.hot=Math.max(0,...q.choices.map(c=>c.freq));q.imp=q.choices.some(c=>c.imp)});
+  ITEMS=QS.filter(q=>!q.mcOnly).flatMap(q=>q.choices);
 }
 function lastResult(qid){for(let i=logs.length-1;i>=0;i--)if(logs[i].qid===qid)return +logs[i].correct;return null}
 const isWeak=id=>flags[id]===true||(flags[id]!==false&&lastResult(id)===0);
@@ -274,7 +280,8 @@ async function syncAll(manual){
   if(!cfg.url){if(manual)toast("先に接続先を設定してください");return false}
   try{
     const [q,l]=await Promise.all([api({action:"questions"}),api({action:"logs"})]);
-    qcache={rows:q.questions,at:new Date().toISOString()};ls.set("gk_q",qcache);buildModel();
+    const h=q.questions.length?Object.keys(q.questions[0]):[];
+    qcache={h,d:q.questions.map(r=>h.map(k=>r[k])),at:new Date().toISOString()};ls.set("gk_q",qcache);buildModel();
     const have=new Set(logs.map(x=>x.uid));
     for(const x of l.logs){if(!have.has(String(x.uid))){logs.push({...x,uid:String(x.uid),correct:+x.correct,date:String(x.date).slice(0,10)})}}
     logs.sort((a,b)=>String(a.ts).localeCompare(String(b.ts)));
@@ -383,15 +390,17 @@ function renderActivity(){
 }
 
 /* ================= トレーニング ================= */
-const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});
-function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year))}
+const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});if(!tr.focus)tr.focus="all";
+const HOT=6,isHot=c=>c.freq>=HOT,isKeyC=c=>isHot(c)||c.imp;
+function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year)&&(tr.fmt!=="ox"||!q.mcOnly)&&(tr.focus==="all"||q.choices.some(isKeyC)))}
+function poolItems(pq){let it=pq.flatMap(q=>q.choices);if(tr.focus==="key")it=it.filter(isKeyC);return it}
 function renderTrain(){
   const el=document.getElementById("v-train");
   if(!cfg.url||!QS.length){
     el.innerHTML=`<h1 class="title">トレーニング</h1><div class="empty"><b>${cfg.url?"問題を読み込めていません。":"まずスプレッドシートと接続してください。"}</b><br>${cfg.url?"設定タブの「今すぐ同期」を押してください。":"設定タブで、GASのウェブアプリURLと合言葉を入れると問題が届きます。"}</div><button class="btn" id="goset">設定を開く</button>`;
     el.querySelector("#goset").onclick=()=>{tab="settings";render()};return;
   }
-  const pq=poolQ(),items=pq.flatMap(q=>q.choices);
+  const pq=poolQ(),items=poolItems(pq);
   const years=[...new Set(QS.map(q=>q.y))].sort((a,b)=>b-a);
   const weakN=tr.fmt==="ox"?items.filter(i=>isWeak(i.id)).length:pq.filter(q=>isWeak(q.qid)).length;
   const total=tr.fmt==="ox"?items.length:pq.length;
@@ -403,12 +412,14 @@ function renderTrain(){
    <button class="subj all" data-s="all" aria-pressed="${tr.subj==="all"}"><span class="nm">4科目まぜる</span><span class="ct">${QS.length}問</span></button></div>
   <div class="field"><label class="label" for="yr">年度</label><select id="yr"><option value="all">すべての年度</option>${years.map(y=>`<option value="${y}" ${tr.year===String(y)?"selected":""}>${era(y)}（${y}）</option>`).join("")}</select></div>
   <div class="field"><span class="label">形式</span><div class="seg">${[["ox","○×","選択肢を1つずつ"],["mc","本番4択","問題をそのまま"]].map(([k,l,s])=>`<button data-f="${k}" aria-pressed="${tr.fmt===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
+  <div class="field"><span class="label">範囲</span><div class="seg">${[["all","すべて","全部の問題"],["key","頻出・重要だけ",`10年で${HOT}回以上＋重要論点`]].map(([k,l,s])=>`<button data-k="${k}" aria-pressed="${tr.focus===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
   <div class="field"><span class="label">出題数</span><div class="seg">${[["10","10問"],["all","全部"],["weak","苦手"]].map(([k,l])=>`<button data-c="${k}" aria-pressed="${tr.count===k}">${l}<small class="num">${k==="10"?Math.min(10,total):k==="all"?total:weakN}問</small></button>`).join("")}</div></div>
   <div class="startwrap"><button class="start" id="go" ${cnt?"":"disabled"}>START</button><p class="hint">${cnt?`${cnt}問 ・ ${tr.fmt==="ox"?"○×":"本番4択"}`:tr.count==="weak"?"苦手に入っている問題はまだありません":"この条件の問題はありません"}</p></div>`;
   const save=()=>{ls.set("gk_tr",tr);renderTrain()};
   el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{tr.subj=b.dataset.s;save()});
   el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{tr.fmt=b.dataset.f;save()});
   el.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{tr.count=b.dataset.c;save()});
+  el.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{tr.focus=b.dataset.k;save()});
   el.querySelector("#yr").onchange=e=>{tr.year=e.target.value;save()};
   el.querySelector("#go").onclick=()=>startRun();
 }
@@ -421,7 +432,7 @@ function startRun(retry){
   if(retry)list=shuffle(retry.list);
   else{
     const pq=poolQ();
-    if(fmt==="ox"){let it=pq.flatMap(q=>q.choices);if(tr.count==="weak")it=it.filter(i=>isWeak(i.id));list=shuffle(it)}
+    if(fmt==="ox"){let it=poolItems(pq);if(tr.count==="weak")it=it.filter(i=>isWeak(i.id));list=shuffle(it)}
     else{let qs=pq;if(tr.count==="weak")qs=qs.filter(q=>isWeak(q.qid));list=shuffle(qs)}
     if(tr.count==="10")list=list.slice(0,10);
   }
@@ -431,10 +442,11 @@ function startRun(retry){
   ask();
 }
 function closeRun(){qEl.hidden=true;document.body.style.overflow="";run=null;render()}
-function margin(q,choice,rev){
-  const s=S(q.s),src=`${era(q.y)}　${s.no}　No.${q.no}${choice?"　肢"+choice:""}`;
-  return`<div class="margin" aria-label="出典 ${src}${rev?" 改題":""}"><span class="src">${src}</span>${rev?'<span class="rev">改題</span>':'<span class="orig">原題</span>'}</div>`;
+function margin(q,choice,rev,freq,imp){
+  const s=S(q.s),src=`${era(q.y)}　${s.no}　No.${q.no}${choice?"　肢"+choice:""}`,hot=freq>=HOT;
+  return`<div class="margin" aria-label="出典 ${src}${rev?" 改題":""}${hot?" 頻出":""}${imp?" 重要":""}"><span class="src">${src}</span><span class="tags">${hot?`<span class="hot">頻出 ${freq}/10年</span>`:""}${imp?'<span class="imp">重要</span>':""}${rev?'<span class="rev">改題</span>':'<span class="orig">原題</span>'}</span></div>`;
 }
+const freqLine=c=>c.key?`<p class="freq">論点「${esc(c.key.split(":").pop())}」 10年中${c.freq}年で出題${isHot(c)?"（頻出）":""}${c.imp?"・重要論点":""}</p>`:"";
 function head(){
   const cur=run.fmt==="ox"?run.list[run.i].q:run.list[run.i],s=S(cur.s);
   return`<div class="qbar"><button class="x" id="qx" aria-label="やめる">✕</button><span class="where">${s.no} ${s.name}</span><span class="cnt num">${run.i+1}<span style="color:var(--muted)">/${run.list.length}</span></span></div>
@@ -445,7 +457,7 @@ function ask(){
   if(run.fmt==="mc")return askMC();
   const it=run.list[run.i],q=it.q;
   qin.innerHTML=`${head()}
-  <div class="paper">${margin(q,it.choice,it.rev)}<div class="body"><span class="topic">${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
+  <div class="paper">${margin(q,it.choice,it.rev,it.freq,it.imp)}<div class="body"><span class="topic">${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
   <div class="ox"><button data-v="1"><span class="s">○</span><span class="c">正しい</span></button><button data-v="0"><span class="s">×</span><span class="c">誤り</span></button></div>
   <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
   bindHead();
@@ -466,7 +478,7 @@ function answerOX(v){
   record(it.id,it.q.s,ok);run.ans.push({item:it,ok});
   qin.querySelectorAll(".ox button").forEach(b=>{b.disabled=true;if((b.dataset.v==="1")===v)b.classList.add("picked")});
   qin.querySelector("#after").innerHTML=`
-  <div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${it.truth?"○":"×"}</span></span><p>${esc(it.exp)}</p>${it.rev&&it.note?`<p class="note">改題：${esc(it.note)}</p>`:""}</div>
+  <div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${it.truth?"○":"×"}</span></span><p>${esc(it.exp)}</p>${it.rev&&it.note?`<p class="note">改題：${esc(it.note)}</p>`:""}${freqLine(it)}</div>
   <label class="flag"><input type="checkbox" id="fl" ${isWeak(it.id)?"checked":""}>苦手に入れる</label>${nextBtn()}`;
   qin.querySelector("#fl").onchange=e=>{flags[it.id]=e.target.checked;ls.set("gk_flags",flags)};
   bindNext();
@@ -474,7 +486,7 @@ function answerOX(v){
 function askMC(){
   const q=run.list[run.i];
   qin.innerHTML=`${head()}
-  <div class="paper">${margin(q,0,q.rev)}<div class="body"><p class="stem">${esc(q.stem)}</p>
+  <div class="paper">${margin(q,0,q.rev,q.hot,q.imp)}<div class="body"><p class="stem">${esc(q.stem)}</p>
   <div class="opts">${q.choices.map(c=>`<button class="opt" data-c="${c.choice}"><span class="n">${c.choice}</span><span>${esc(c.text)}</span></button>`).join("")}</div>
   <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
   bindHead();
@@ -483,15 +495,15 @@ function askMC(){
 }
 function answerMC(n){
   if(!run||!run.open)return;run.open=false;
-  const q=run.list[run.i],ok=n===q.ans;
+  const q=run.list[run.i],ok=n===q.ans||(q.alt&&n===q.alt);
   record(q.qid,q.s,ok);run.ans.push({item:q,ok,chosen:n});
   qin.querySelectorAll(".opt").forEach(b=>{
     const c=q.choices.find(x=>x.choice===+b.dataset.c);b.disabled=true;
-    if(c.choice===q.ans)b.classList.add("right");else if(c.choice===n)b.classList.add("wrong");
+    if(c.choice===q.ans||c.choice===q.alt)b.classList.add("right");else if(c.choice===n)b.classList.add("wrong");
     b.insertAdjacentHTML("beforeend",`<span class="why"><b class="${c.truth?"t":"f"}">${c.truth?"○":"×"}</b><span>${esc(c.exp)}</span></span>`);
   });
   const notes=q.choices.filter(c=>c.rev&&c.note).map(c=>`肢${c.choice}：${esc(c.note)}`).join("<br>");
-  qin.querySelector("#after").innerHTML=`<div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${q.ans}</span></span>${notes?`<p class="note">改題　${notes}</p>`:""}</div>
+  qin.querySelector("#after").innerHTML=`<div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${q.ans}${q.alt?"・"+q.alt:""}</span></span>${q.alt?`<p class="note">この問題は肢${q.ans}と肢${q.alt}の両方が正答として扱われています（試験実施機関の発表）。</p>`:""}${notes?`<p class="note">改題　${notes}</p>`:""}</div>
   <label class="flag"><input type="checkbox" id="fl" ${isWeak(q.qid)?"checked":""}>苦手に入れる</label>${nextBtn()}`;
   qin.querySelector("#fl").onchange=e=>{flags[q.qid]=e.target.checked;ls.set("gk_flags",flags)};
   bindNext();
@@ -503,7 +515,7 @@ function result(){
   const wItem=x=>{
     if(fmt==="ox"){const it=x.item,q=it.q;return`<div class="wi"><span class="s">${era(q.y)} ${S(q.s).no} No.${q.no} 肢${it.choice}${it.rev?" ・改題":""}</span><p>${esc(it.text)}</p><p class="a">正答 <b>${it.truth?"○":"×"}</b>　${esc(it.exp)}</p></div>`}
     const q=x.item,k=q.choices.find(c=>c.choice===q.ans);
-    return`<div class="wi"><span class="s">${era(q.y)} ${S(q.s).no} No.${q.no}${q.rev?" ・改題":""}　あなたの解答 ${x.chosen} → 正答 ${q.ans}</span><p>${esc(k.text)}</p><p class="a">${esc(k.exp)}</p></div>`;
+    return`<div class="wi"><span class="s">${era(q.y)} ${S(q.s).no} No.${q.no}${q.rev?" ・改題":""}　あなたの解答 ${x.chosen} → 正答 ${q.ans}${q.alt?"・"+q.alt:""}</span><p>${esc(k.text)}</p><p class="a">${esc(k.exp)}</p></div>`;
   };
   qin.innerHTML=`<div class="qbar"><button class="x" id="qx" aria-label="閉じる">✕</button><span class="where">${fmt==="ox"?"○×":"本番4択"} ・ ${min}分</span></div>
   <div class="res"><span class="big num">${c}</span><span class="of num">/${a.length}</span></div>
