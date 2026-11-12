@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>学科ラン</title>
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="学科ラン">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap">
+<style>
+/* Layout: NRC風。白地・黒の太字、数字は細長い書体で大きく。下にタブバー、各タブは1カラム */
+:root{
+  --bg:#FFFFFF; --fg:#111111; --muted:#767676; --soft:#F4F4F4; --line:#E6E6E6; --inv-bg:#111111; --inv-fg:#FFFFFF;
+  --ok:#128A4A; --ng:#D4342C; --okSoft:#E7F5EC; --ngSoft:#FCEAE8;
+  --c-plan:#2F6BFF; --c-env:#14A46C; --c-struct:#F2A20C; --c-const:#E5484D;
+  --f-num:"Barlow Condensed","Helvetica Neue","Arial Narrow",sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  --tab-h:58px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#000000; --fg:#F5F5F5; --muted:#9A9A9A; --soft:#151515; --line:#2A2A2A; --inv-bg:#F5F5F5; --inv-fg:#000000;
+  --ok:#3CC77C; --ng:#FF6B62; --okSoft:#0F2A1B; --ngSoft:#2E1311;
+  --c-plan:#5B8CFF; --c-env:#2CC287; --c-struct:#FFB52E; --c-const:#FF6A6E; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+[hidden]{display:none!important}
+
+/* ---------- shell ---------- */
+main{max-width:640px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 18px) max(18px,env(safe-area-inset-right,0px)) calc(var(--tab-h) + env(safe-area-inset-bottom,0px) + 28px) max(18px,env(safe-area-inset-left,0px))}
+.view{display:flex;flex-direction:column;gap:22px}
+.title{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin:6px 0 0;line-height:1.2}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;background:var(--soft);border-radius:999px;padding:5px 12px;white-space:nowrap}
+.label{font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:center;padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px));z-index:5}
+.tabbar .in{display:flex;width:100%;max-width:640px}
+.tab{flex:1;height:var(--tab-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.68rem;font-weight:700;color:var(--muted)}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--fg)}
+
+/* segmented */
+.seg{display:flex;background:var(--soft);border-radius:999px;padding:3px}
+.seg button{flex:1;border-radius:999px;padding:8px 6px;font-size:.88rem;font-weight:700;color:var(--muted);line-height:1.3}
+.seg button[aria-pressed="true"]{background:var(--inv-bg);color:var(--inv-fg)}
+.seg small{display:block;font-size:.68rem;font-weight:500;opacity:.8}
+
+/* ---------- activity ---------- */
+.period{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.period button{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:1.2rem;color:var(--fg)}
+.period button:disabled{opacity:.25;cursor:default}
+.period .lbl{font-weight:700;font-size:.95rem;text-align:center}
+.hero{display:flex;flex-direction:column;align-items:flex-start}
+.hero .big{font-size:6.2rem;font-weight:800;line-height:.9}
+.hero .unit{font-size:.95rem;font-weight:700;color:var(--muted);margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat .v{font-size:1.9rem;font-weight:700;line-height:1.1}
+.stat .k{font-size:.75rem;color:var(--muted);font-weight:700}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-family:var(--f-num);fill:var(--muted);font-size:11px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .hit{fill:transparent;cursor:pointer}
+.chart .tip{fill:var(--fg);font-size:15px;font-weight:700}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.legend .it{display:flex;align-items:center;gap:8px;min-width:0}
+.legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.legend .nm{font-size:.85rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legend .ct{font-size:1.1rem;font-weight:700}
+.list{display:flex;flex-direction:column}
+.sess{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.sess:last-child{border-bottom:1px solid var(--line)}
+.sess .bars{display:flex;gap:2px;height:44px;align-items:flex-end;background:var(--soft);border-radius:10px;padding:8px}
+.sess .bars i{flex:1;border-radius:2px}
+.sess .t{font-weight:700;font-size:.92rem}
+.sess .d{font-size:.78rem;color:var(--muted)}
+.sess .r{text-align:right}
+.sess .r .v{font-size:1.5rem;font-weight:700;line-height:1}
+.sess .r .k{font-size:.7rem;color:var(--muted)}
+.empty{background:var(--soft);border-radius:14px;padding:18px;font-size:.9rem;color:var(--muted)}
+.empty b{color:var(--fg)}
+
+/* ---------- train ---------- */
+.bank{display:flex;gap:18px;align-items:flex-end}
+.bank .v{font-size:2.6rem;font-weight:800;line-height:1}
+.bank .k{font-size:.75rem;color:var(--muted);font-weight:700}
+.subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.subj{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:2px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.subj[aria-pressed="true"]{border-color:var(--fg)}
+.subj .no{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;color:var(--muted)}
+.subj .no i{width:8px;height:8px;border-radius:2px}
+.subj .nm{font-weight:800;font-size:1.02rem;line-height:1.3}
+.subj .ct{font-size:.75rem;color:var(--muted)}
+.subj.all{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between}
+select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23888' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;border:0;border-radius:12px;padding:12px 36px 12px 14px;font-weight:700}
+.startwrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0}
+.start{width:132px;height:132px;border-radius:50%;background:var(--inv-bg);color:var(--inv-fg);font-family:var(--f-num);font-size:1.7rem;font-weight:800;letter-spacing:.06em;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .12s}
+.start:active{transform:scale(.96)}
+.start:disabled{opacity:.3;cursor:default}
+.hint{font-size:.8rem;color:var(--muted);text-align:center;margin:0}
+
+/* ---------- quiz ---------- */
+.quiz{position:fixed;inset:0;background:var(--bg);z-index:10;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.quiz .in{max-width:640px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 10px) max(18px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 28px) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px;min-height:100%}
+.qbar{display:flex;align-items:center;gap:12px}
+.qbar .x{width:40px;height:40px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:1.1rem;flex:none}
+.qbar .where{flex:1;min-width:0;font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qbar .cnt{font-size:1.5rem;font-weight:700}
+.prog{height:4px;background:var(--soft);border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--fg);transition:width .25s}
+.paper{display:flex;flex-direction:column;gap:14px;border-top:2px solid var(--fg);padding-top:10px}
+.margin{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.78rem;font-weight:700;color:var(--muted);padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.margin .src{color:var(--fg);letter-spacing:.02em}
+.margin .rev,.margin .orig{flex:none;border-radius:4px;padding:1px 7px;border:1.5px solid currentColor;font-size:.72rem}
+.margin .rev{color:var(--ng)}
+.margin .orig{color:var(--muted)}
+.body{display:flex;flex-direction:column;gap:14px;min-width:0}
+.topic{font-size:.75rem;font-weight:700;color:var(--muted)}
+.stmt{font-size:1.1rem;line-height:1.85;margin:0}
+.stem{font-size:1rem;font-weight:700;line-height:1.75;margin:0}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.ox button{height:92px;border-radius:16px;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:800}
+.ox .s{font-size:2.6rem;line-height:1}
+.ox .c{font-size:.72rem;color:var(--muted)}
+.ox button:disabled{opacity:.35;cursor:default}
+.ox button.picked{opacity:1;background:var(--inv-bg);color:var(--inv-fg)}
+.ox button.picked .c{color:var(--inv-fg)}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;text-align:left;background:var(--soft);border:2px solid transparent;border-radius:14px;padding:12px 14px;line-height:1.75}
+.opt .n{font-family:var(--f-num);font-size:1.3rem;font-weight:800;line-height:1.4}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--okSoft)}
+.opt.wrong{border-color:var(--ng);background:var(--ngSoft)}
+.opt .why{grid-column:2;font-size:.84rem;color:var(--muted);display:flex;gap:8px}
+.opt .why b{flex:none;font-weight:800}
+.opt .why b.t{color:var(--ok)} .opt .why b.f{color:var(--ng)}
+.fb{border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--ngSoft)}
+.fb.ok{background:var(--okSoft)}
+.fb .h{font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+.fb.ok .h{color:var(--ok)} .fb .h{color:var(--ng)}
+.fb p{margin:0}
+.fb .note{font-size:.82rem;color:var(--muted)}
+.flag{display:flex;gap:8px;align-items:center;font-size:.88rem}
+.flag input{width:20px;height:20px;accent-color:var(--ng)}
+.btn{display:block;width:100%;border-radius:999px;padding:15px 20px;font-weight:800;font-size:1rem;text-align:center;background:var(--inv-bg);color:var(--inv-fg)}
+.btn.sub{background:var(--soft);color:var(--fg)}
+.spacer{flex:1}
+.res .big{font-size:7rem;font-weight:800;line-height:.9}
+.res .of{font-size:2.2rem;font-weight:700;color:var(--muted)}
+.wl{display:flex;flex-direction:column;gap:10px}
+.wi{background:var(--soft);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.wi .s{font-size:.75rem;color:var(--muted);font-weight:700}
+.wi p{margin:0;font-size:.9rem}
+.wi .a{color:var(--muted);font-size:.84rem}
+.wi .a b{color:var(--ng)}
+
+/* ---------- settings ---------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.field input{background:var(--soft);border:0;border-radius:12px;padding:12px 14px;width:100%;font-size:.95rem}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:.92rem}
+.kv:last-child{border-bottom:1px solid var(--line)}
+.kv span:last-child{font-weight:700;text-align:right}
+.status{font-size:.85rem;border-radius:12px;padding:10px 12px;background:var(--soft)}
+.status.ng{background:var(--ngSoft);color:var(--ng)}
+.status.ok{background:var(--okSoft);color:var(--ok)}
+.fine{font-size:.78rem;color:var(--muted);line-height:1.7;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);background:var(--inv-bg);color:var(--inv-fg);border-radius:999px;padding:10px 18px;font-size:.85rem;font-weight:700;z-index:20;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:370px){.hero .big{font-size:5rem}.res .big{font-size:5.5rem}}
+</style>
+</head>
+<body>
+<main>
+  <section class="view" id="v-activity"></section>
+  <section class="view" id="v-train" hidden></section>
+  <section class="view" id="v-settings" hidden></section>
+</main>
+<nav class="tabbar" aria-label="タブ"><div class="in">
+  <button class="tab" data-tab="activity" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>アクティビティ</button>
+  <button class="tab" data-tab="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5zM13 4h5.5c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5H13z"/></svg>トレーニング</button>
+  <button class="tab" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>設定</button>
+</div></nav>
+<div class="quiz" id="quiz" hidden><div class="in" id="qin"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ================= 基本データ ================= */
+const SUBJ=[
+  {key:"plan",no:"学科Ⅰ",name:"計画",short:"計画",exam:20},
+  {key:"env",no:"学科Ⅱ",name:"環境・設備",short:"環境設備",exam:20},
+  {key:"struct",no:"学科Ⅳ",name:"構造（計算以外）",short:"構造",exam:30},
+  {key:"const",no:"学科Ⅴ",name:"施工",short:"施工",exam:25}
+];
+const S=k=>SUBJ.find(s=>s.key===k);
+const color=k=>`var(--c-${k})`;
+const era=y=>{y=+y;if(y>=2020)return"令和"+(y-2018)+"年";if(y===2019)return"令和元年";return"平成"+(y-1988)+"年"};
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+/* ================= 保存 ================= */
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let cfg=ls.get("gk_cfg",{url:"",key:""});
+let qcache=ls.get("gk_q",{rows:[],at:null});
+let logs=ls.get("gk_logs",[]);
+let pending=ls.get("gk_pending",[]);
+let flags=ls.get("gk_flags",{});
+let lastSync=ls.get("gk_sync",null);
+const saveLogs=()=>{ls.set("gk_logs",logs);ls.set("gk_pending",pending)};
+
+/* ================= 日付（日本時間） ================= */
+const fmtDay=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"});
+const dayKey=d=>fmtDay.format(d);
+const today=()=>dayKey(new Date());
+const kd=k=>new Date(k+"T12:00:00+09:00");
+const addDays=(k,n)=>{const d=kd(k);d.setUTCDate(d.getUTCDate()+n);return dayKey(d)};
+const dow=k=>(kd(k).getUTCDay()+6)%7; /* 月=0 */
+const md=k=>{const[,m,d]=k.split("-");return`${+m}月${+d}日`};
+const nowStr=d=>{const t=new Date(d);return new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(t)};
+
+/* ================= 問題モデル ================= */
+let QS=[],ITEMS=[];
+function buildModel(){
+  const map=new Map();
+  for(const r of qcache.rows){
+    const y=+r.exam_year,no=+r.no,qid=`${y}-${r.subject}-${pad(no)}`;
+    if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,choices:[]});
+    const q=map.get(qid);
+    q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",q});
+  }
+  QS=[...map.values()].filter(q=>S(q.s)).sort((a,b)=>b.y-a.y||SUBJ.indexOf(S(a.s))-SUBJ.indexOf(S(b.s))||a.no-b.no);
+  QS.forEach(q=>{q.choices.sort((a,b)=>a.choice-b.choice);q.rev=q.choices.some(c=>c.rev)});
+  ITEMS=QS.flatMap(q=>q.choices);
+}
+function lastResult(qid){for(let i=logs.length-1;i>=0;i--)if(logs[i].qid===qid)return +logs[i].correct;return null}
+const isWeak=id=>flags[id]===true||(flags[id]!==false&&lastResult(id)===0);
+
+/* ================= 通信 ================= */
+async function api(body){
+  if(!cfg.url)throw new Error("not_configured");
+  const res=await fetch(cfg.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:cfg.key,...body}),redirect:"follow"});
+  const j=await res.json();
+  if(!j.ok)throw new Error(j.error||"error");
+  return j;
+}
+let flushing=false;
+async function flush(){
+  if(flushing||!pending.length||!cfg.url||!navigator.onLine)return;
+  flushing=true;
+  try{
+    const set=new Set(pending);
+    const batch=logs.filter(l=>set.has(l.uid)).slice(0,200);
+    const j=await api({action:"log",logs:batch});
+    const ok=new Set(j.saved||[]);
+    pending=pending.filter(u=>!ok.has(u));saveLogs();
+  }catch(e){}finally{flushing=false}
+}
+async function syncAll(manual){
+  if(!cfg.url){if(manual)toast("先に接続先を設定してください");return false}
+  try{
+    const [q,l]=await Promise.all([api({action:"questions"}),api({action:"logs"})]);
+    qcache={rows:q.questions,at:new Date().toISOString()};ls.set("gk_q",qcache);buildModel();
+    const have=new Set(logs.map(x=>x.uid));
+    for(const x of l.logs){if(!have.has(String(x.uid))){logs.push({...x,uid:String(x.uid),correct:+x.correct,date:String(x.date).slice(0,10)})}}
+    logs.sort((a,b)=>String(a.ts).localeCompare(String(b.ts)));
+    saveLogs();await flush();
+    lastSync=new Date().toISOString();ls.set("gk_sync",lastSync);
+    if(manual)toast("同期しました");
+    render();return true;
+  }catch(e){if(manual)toast(e.message==="auth"?"合言葉が違います":"同期できませんでした");return false}
+}
+
+/* ================= 画面切替 ================= */
+let tab="activity";
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();window.scrollTo(0,0)});
+function render(){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
+  for(const v of ["activity","train","settings"])document.getElementById("v-"+v).hidden=v!==tab;
+  if(tab==="activity")renderActivity();else if(tab==="train")renderTrain();else renderSettings();
+}
+let toastT;
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
+
+/* ================= アクティビティ ================= */
+const act={range:"week",offset:0,sel:null};
+function periodOf(){
+  const t=today();
+  if(act.range==="week"){
+    const start=addDays(addDays(t,-dow(t)),act.offset*7);
+    const keys=[...Array(7)].map((_,i)=>addDays(start,i));
+    return{keys,buckets:keys.map(k=>({keys:[k],lbl:"月火水木金土日"[dow(k)]})),label:act.offset===0?"今週":`${md(keys[0])}〜${md(keys[6])}`,days:7};
+  }
+  const [ty,tm]=t.split("-").map(Number);
+  if(act.range==="month"){
+    let y=ty,m=tm+act.offset;while(m<1){m+=12;y--}while(m>12){m-=12;y++}
+    const n=new Date(Date.UTC(y,m,0)).getUTCDate();
+    const keys=[...Array(n)].map((_,i)=>`${y}-${pad(m)}-${pad(i+1)}`);
+    return{keys,buckets:keys.map((k,i)=>({keys:[k],lbl:[0,7,14,21,28].includes(i)?String(i+1):""})),label:act.offset===0?"今月":`${y}年${m}月`,days:n};
+  }
+  const y=ty+act.offset,months=[...Array(12)].map((_,i)=>{const m=i+1,n=new Date(Date.UTC(y,m,0)).getUTCDate();return{keys:[...Array(n)].map((_,d)=>`${y}-${pad(m)}-${pad(d+1)}`),lbl:String(m)}});
+  return{keys:months.flatMap(b=>b.keys),buckets:months,label:act.offset===0?"今年":`${y}年`,days:months.reduce((a,b)=>a+b.keys.length,0)};
+}
+function streak(){
+  const days=new Set(logs.map(l=>l.date));let k=today(),n=0;
+  if(!days.has(k))k=addDays(k,-1);
+  while(days.has(k)){n++;k=addDays(k,-1)}
+  return n;
+}
+function niceMax(v){if(v<=5)return 5;const p=Math.pow(10,Math.floor(Math.log10(v))),f=v/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p}
+function chartSVG(per){
+  const byDay={};for(const l of logs){(byDay[l.date]??={})[l.subject]=(byDay[l.date][l.subject]||0)+1}
+  const data=per.buckets.map(b=>{const o={};SUBJ.forEach(s=>o[s.key]=0);b.keys.forEach(k=>{const d=byDay[k];if(d)SUBJ.forEach(s=>o[s.key]+=d[s.key]||0)});o.total=SUBJ.reduce((a,s)=>a+o[s.key],0);return o});
+  const max=niceMax(Math.max(1,...data.map(d=>d.total)));
+  const W=340,H=170,top=22,bottom=22,right=30,plotW=W-right,plotH=H-top-bottom,n=data.length,slot=plotW/n,bw=Math.max(3,Math.min(22,slot*.56));
+  const y=v=>top+plotH-(v/max)*plotH;
+  let g="";
+  [0,max/2,max].forEach(v=>{g+=`<line class="grid" x1="0" x2="${plotW}" y1="${y(v)}" y2="${y(v)}"/><text x="${W-2}" y="${y(v)+4}" text-anchor="end">${Math.round(v)}</text>`});
+  let defs="",bars="";
+  data.forEach((d,i)=>{
+    const x=i*slot+(slot-bw)/2,dim=act.sel!=null&&act.sel!==i?' opacity="0.3"':"";
+    if(d.total){
+      const h=(d.total/max)*plotH,r=Math.min(bw/2,4);
+      defs+=`<clipPath id="cb${i}"><rect x="${x}" y="${y(d.total)}" width="${bw}" height="${h}" rx="${r}"/></clipPath>`;
+      let acc=0,seg="";
+      SUBJ.forEach(s=>{const v=d[s.key];if(!v)return;const y1=y(acc+v),hh=(v/max)*plotH;seg+=`<rect x="${x}" y="${y1}" width="${bw}" height="${hh+.5}" fill="${color(s.key)}"/>`;acc+=v});
+      bars+=`<g clip-path="url(#cb${i})"${dim}>${seg}</g>`;
+    }else bars+=`<rect x="${x}" y="${top+plotH-2}" width="${bw}" height="2" rx="1" fill="var(--line)"${dim}/>`;
+    if(per.buckets[i].lbl)bars+=`<text x="${x+bw/2}" y="${H-4}" text-anchor="middle">${per.buckets[i].lbl}</text>`;
+    bars+=`<rect class="hit" data-i="${i}" x="${i*slot}" y="0" width="${slot}" height="${H}"/>`;
+  });
+  let tip="";
+  if(act.sel!=null&&data[act.sel]){const d=data[act.sel],x=act.sel*slot+slot/2;tip=`<text class="tip" x="${Math.min(Math.max(x,14),plotW-14)}" y="${Math.max(14,y(d.total)-7)}" text-anchor="middle">${d.total}</text>`}
+  return{svg:`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="科目別の解いた問題数"><defs>${defs}</defs>${g}${bars}${tip}</svg>`,data};
+}
+function sessions(){
+  const m=new Map();
+  for(const l of logs){if(!m.has(l.sid))m.set(l.sid,{sid:l.sid,ts:l.ts,date:l.date,n:0,c:0,mode:l.mode,by:{}});const s=m.get(l.sid);s.n++;s.c+=+l.correct;s.by[l.subject]=(s.by[l.subject]||0)+1}
+  return[...m.values()].sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+}
+function renderActivity(){
+  const el=document.getElementById("v-activity"),per=periodOf(),set=new Set(per.keys);
+  const inP=logs.filter(l=>set.has(l.date)),n=inP.length,c=inP.filter(l=>+l.correct).length,days=new Set(inP.map(l=>l.date)).size;
+  const {svg,data}=chartSVG(per);
+  const sel=act.sel!=null?data[act.sel]:null;
+  const bySub=SUBJ.map(s=>({s,v:sel?sel[s.key]:inP.filter(l=>l.subject===s.key).length}));
+  const sess=sessions().slice(0,8);
+  el.innerHTML=`
+  <div class="row"><h1 class="title">アクティビティ</h1><span class="chip">連続 <span class="num" style="font-size:1rem">${streak()}</span> 日</span></div>
+  <div class="seg" role="group" aria-label="期間">${[["week","週"],["month","月"],["year","年"]].map(([k,l])=>`<button data-r="${k}" aria-pressed="${act.range===k}">${l}</button>`).join("")}</div>
+  <div class="period"><button id="prev" aria-label="前の期間">‹</button><span class="lbl">${per.label}</span><button id="next" aria-label="次の期間" ${act.offset>=0?"disabled":""}>›</button></div>
+  <div class="hero"><span class="big num">${n}</span><span class="unit">問</span></div>
+  <div class="stats">
+    <div class="stat"><div class="v num">${n?Math.round(c/n*100)+"%":"—"}</div><div class="k">正答率</div></div>
+    <div class="stat"><div class="v num">${days}</div><div class="k">学習した日</div></div>
+    <div class="stat"><div class="v num">${days?(n/days).toFixed(1):"—"}</div><div class="k">1日平均</div></div>
+  </div>
+  <div>${svg}</div>
+  <div class="legend">${bySub.map(({s,v})=>`<div class="it"><span class="dot" style="background:${color(s.key)}"></span><span class="nm">${s.short}</span><span class="ct num">${v}</span></div>`).join("")}</div>
+  <div class="row"><span class="label">最近のトレーニング</span></div>
+  ${sess.length?`<div class="list">${sess.map(s=>{const tot=s.n;return`<div class="sess"><div class="bars">${SUBJ.map(x=>`<i style="height:${Math.max(6,(s.by[x.key]||0)/tot*100)}%;background:${s.by[x.key]?color(x.key):"var(--line)"}"></i>`).join("")}</div>
+      <div><div class="t">${Object.keys(s.by).length>=4?"4科目":SUBJ.filter(x=>s.by[x.key]).map(x=>x.short).join("・")}</div><div class="d">${s.mode==="mc"?"本番4択":"○×"} ・ ${nowStr(s.ts)}</div></div>
+      <div class="r"><div class="v num">${s.c}/${s.n}</div><div class="k">正解</div></div></div>`}).join("")}</div>`
+   :`<div class="empty"><b>まだ記録がありません。</b><br>トレーニングタブから解くと、ここに日ごと・科目ごとの問題数が積み上がります。</div>`}`;
+  el.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{act.range=b.dataset.r;act.offset=0;act.sel=null;renderActivity()});
+  el.querySelector("#prev").onclick=()=>{act.offset--;act.sel=null;renderActivity()};
+  el.querySelector("#next").onclick=()=>{if(act.offset<0){act.offset++;act.sel=null;renderActivity()}};
+  el.querySelectorAll(".hit").forEach(h=>h.onclick=()=>{const i=+h.dataset.i;act.sel=act.sel===i?null:i;renderActivity()});
+}
+
+/* ================= トレーニング ================= */
+const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});
+function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year))}
+function renderTrain(){
+  const el=document.getElementById("v-train");
+  if(!cfg.url||!QS.length){
+    el.innerHTML=`<h1 class="title">トレーニング</h1><div class="empty"><b>${cfg.url?"問題を読み込めていません。":"まずスプレッドシートと接続してください。"}</b><br>${cfg.url?"設定タブの「今すぐ同期」を押してください。":"設定タブで、GASのウェブアプリURLと合言葉を入れると問題が届きます。"}</div><button class="btn" id="goset">設定を開く</button>`;
+    el.querySelector("#goset").onclick=()=>{tab="settings";render()};return;
+  }
+  const pq=poolQ(),items=pq.flatMap(q=>q.choices);
+  const years=[...new Set(QS.map(q=>q.y))].sort((a,b)=>b-a);
+  const weakN=tr.fmt==="ox"?items.filter(i=>isWeak(i.id)).length:pq.filter(q=>isWeak(q.qid)).length;
+  const total=tr.fmt==="ox"?items.length:pq.length;
+  const cnt=tr.count==="10"?Math.min(10,total):tr.count==="all"?total:weakN;
+  el.innerHTML=`
+  <h1 class="title">トレーニング</h1>
+  <div class="bank"><div><div class="v num">${QS.length}</div><div class="k">過去問（4択）</div></div><div><div class="v num">${ITEMS.length}</div><div class="k">○×に分けた選択肢</div></div><div><div class="v num">${years.length}</div><div class="k">年度</div></div></div>
+  <div class="subjects">${SUBJ.map(s=>{const k=QS.filter(q=>q.s===s.key).length;return`<button class="subj" data-s="${s.key}" aria-pressed="${tr.subj===s.key}"><span class="no"><i style="background:${color(s.key)}"></i>${s.no}</span><span class="nm">${s.name}</span><span class="ct">${k}問</span></button>`}).join("")}
+   <button class="subj all" data-s="all" aria-pressed="${tr.subj==="all"}"><span class="nm">4科目まぜる</span><span class="ct">${QS.length}問</span></button></div>
+  <div class="field"><label class="label" for="yr">年度</label><select id="yr"><option value="all">すべての年度</option>${years.map(y=>`<option value="${y}" ${tr.year===String(y)?"selected":""}>${era(y)}（${y}）</option>`).join("")}</select></div>
+  <div class="field"><span class="label">形式</span><div class="seg">${[["ox","○×","選択肢を1つずつ"],["mc","本番4択","問題をそのまま"]].map(([k,l,s])=>`<button data-f="${k}" aria-pressed="${tr.fmt===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
+  <div class="field"><span class="label">出題数</span><div class="seg">${[["10","10問"],["all","全部"],["weak","苦手"]].map(([k,l])=>`<button data-c="${k}" aria-pressed="${tr.count===k}">${l}<small class="num">${k==="10"?Math.min(10,total):k==="all"?total:weakN}問</small></button>`).join("")}</div></div>
+  <div class="startwrap"><button class="start" id="go" ${cnt?"":"disabled"}>START</button><p class="hint">${cnt?`${cnt}問 ・ ${tr.fmt==="ox"?"○×":"本番4択"}`:tr.count==="weak"?"苦手に入っている問題はまだありません":"この条件の問題はありません"}</p></div>`;
+  const save=()=>{ls.set("gk_tr",tr);renderTrain()};
+  el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{tr.subj=b.dataset.s;save()});
+  el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{tr.fmt=b.dataset.f;save()});
+  el.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{tr.count=b.dataset.c;save()});
+  el.querySelector("#yr").onchange=e=>{tr.year=e.target.value;save()};
+  el.querySelector("#go").onclick=()=>startRun();
+}
+
+/* ================= 出題 ================= */
+let run=null;
+const qEl=document.getElementById("quiz"),qin=document.getElementById("qin");
+function startRun(retry){
+  let list,fmt=retry?retry.fmt:tr.fmt;
+  if(retry)list=shuffle(retry.list);
+  else{
+    const pq=poolQ();
+    if(fmt==="ox"){let it=pq.flatMap(q=>q.choices);if(tr.count==="weak")it=it.filter(i=>isWeak(i.id));list=shuffle(it)}
+    else{let qs=pq;if(tr.count==="weak")qs=qs.filter(q=>isWeak(q.qid));list=shuffle(qs)}
+    if(tr.count==="10")list=list.slice(0,10);
+  }
+  if(!list.length)return;
+  run={fmt,list,i:0,ans:[],sid:uid(),open:true,t0:Date.now()};
+  qEl.hidden=false;document.body.style.overflow="hidden";
+  ask();
+}
+function closeRun(){qEl.hidden=true;document.body.style.overflow="";run=null;render()}
+function margin(q,choice,rev){
+  const s=S(q.s),src=`${era(q.y)}　${s.no}　No.${q.no}${choice?"　肢"+choice:""}`;
+  return`<div class="margin" aria-label="出典 ${src}${rev?" 改題":""}"><span class="src">${src}</span>${rev?'<span class="rev">改題</span>':'<span class="orig">原題</span>'}</div>`;
+}
+function head(){
+  const cur=run.fmt==="ox"?run.list[run.i].q:run.list[run.i],s=S(cur.s);
+  return`<div class="qbar"><button class="x" id="qx" aria-label="やめる">✕</button><span class="where">${s.no} ${s.name}</span><span class="cnt num">${run.i+1}<span style="color:var(--muted)">/${run.list.length}</span></span></div>
+  <div class="prog"><i style="width:${run.i/run.list.length*100}%"></i></div>`;
+}
+function ask(){
+  run.open=true;
+  if(run.fmt==="mc")return askMC();
+  const it=run.list[run.i],q=it.q;
+  qin.innerHTML=`${head()}
+  <div class="paper">${margin(q,it.choice,it.rev)}<div class="body"><span class="topic">${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
+  <div class="ox"><button data-v="1"><span class="s">○</span><span class="c">正しい</span></button><button data-v="0"><span class="s">×</span><span class="c">誤り</span></button></div>
+  <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
+  bindHead();
+  qin.querySelectorAll(".ox button").forEach(b=>b.onclick=()=>answerOX(b.dataset.v==="1"));
+  qEl.scrollTo(0,0);
+}
+function bindHead(){qin.querySelector("#qx").onclick=()=>run.ans.length?result():closeRun()}
+function record(qid,subject,ok){
+  const l={uid:uid(),ts:new Date().toISOString(),date:today(),sid:run.sid,qid,subject,mode:run.fmt,correct:ok?1:0};
+  logs.push(l);pending.push(l.uid);
+  if(flags[qid]===false&&!ok)delete flags[qid];
+  saveLogs();ls.set("gk_flags",flags);flush();
+}
+function nextBtn(){return`<button class="btn" id="nx">${run.i===run.list.length-1?"結果を見る":"次へ"}</button>`}
+function answerOX(v){
+  if(!run||!run.open)return;run.open=false;
+  const it=run.list[run.i],ok=v===it.truth;
+  record(it.id,it.q.s,ok);run.ans.push({item:it,ok});
+  qin.querySelectorAll(".ox button").forEach(b=>{b.disabled=true;if((b.dataset.v==="1")===v)b.classList.add("picked")});
+  qin.querySelector("#after").innerHTML=`
+  <div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${it.truth?"○":"×"}</span></span><p>${esc(it.exp)}</p>${it.rev&&it.note?`<p class="note">改題：${esc(it.note)}</p>`:""}</div>
+  <label class="flag"><input type="checkbox" id="fl" ${isWeak(it.id)?"checked":""}>苦手に入れる</label>${nextBtn()}`;
+  qin.querySelector("#fl").onchange=e=>{flags[it.id]=e.target.checked;ls.set("gk_flags",flags)};
+  bindNext();
+}
+function askMC(){
+  const q=run.list[run.i];
+  qin.innerHTML=`${head()}
+  <div class="paper">${margin(q,0,q.rev)}<div class="body"><p class="stem">${esc(q.stem)}</p>
+  <div class="opts">${q.choices.map(c=>`<button class="opt" data-c="${c.choice}"><span class="n">${c.choice}</span><span>${esc(c.text)}</span></button>`).join("")}</div>
+  <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
+  bindHead();
+  qin.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answerMC(+b.dataset.c));
+  qEl.scrollTo(0,0);
+}
+function answerMC(n){
+  if(!run||!run.open)return;run.open=false;
+  const q=run.list[run.i],ok=n===q.ans;
+  record(q.qid,q.s,ok);run.ans.push({item:q,ok,chosen:n});
+  qin.querySelectorAll(".opt").forEach(b=>{
+    const c=q.choices.find(x=>x.choice===+b.dataset.c);b.disabled=true;
+    if(c.choice===q.ans)b.classList.add("right");else if(c.choice===n)b.classList.add("wrong");
+    b.insertAdjacentHTML("beforeend",`<span class="why"><b class="${c.truth?"t":"f"}">${c.truth?"○":"×"}</b><span>${esc(c.exp)}</span></span>`);
+  });
+  const notes=q.choices.filter(c=>c.rev&&c.note).map(c=>`肢${c.choice}：${esc(c.note)}`).join("<br>");
+  qin.querySelector("#after").innerHTML=`<div class="fb ${ok?"ok":""}" role="status"><span class="h">${ok?"正解":"不正解"}<span style="color:var(--fg);font-weight:700;font-size:.92rem">　正答は ${q.ans}</span></span>${notes?`<p class="note">改題　${notes}</p>`:""}</div>
+  <label class="flag"><input type="checkbox" id="fl" ${isWeak(q.qid)?"checked":""}>苦手に入れる</label>${nextBtn()}`;
+  qin.querySelector("#fl").onchange=e=>{flags[q.qid]=e.target.checked;ls.set("gk_flags",flags)};
+  bindNext();
+}
+function bindNext(){const b=qin.querySelector("#nx");b.onclick=next;b.focus({preventScroll:true})}
+function next(){if(!run)return;if(run.i<run.list.length-1){run.i++;ask()}else result()}
+function result(){
+  const a=run.ans,c=a.filter(x=>x.ok).length,wrong=a.filter(x=>!x.ok),fmt=run.fmt,min=Math.max(1,Math.round((Date.now()-run.t0)/60000));
+  const wItem=x=>{
+    if(fmt==="ox"){const it=x.item,q=it.q;return`<div class="wi"><span class="s">${era(q.y)} ${S(q.s).no} No.${q.no} 肢${it.choice}${it.rev?" ・改題":""}</span><p>${esc(it.text)}</p><p class="a">正答 <b>${it.truth?"○":"×"}</b>　${esc(it.exp)}</p></div>`}
+    const q=x.item,k=q.choices.find(c=>c.choice===q.ans);
+    return`<div class="wi"><span class="s">${era(q.y)} ${S(q.s).no} No.${q.no}${q.rev?" ・改題":""}　あなたの解答 ${x.chosen} → 正答 ${q.ans}</span><p>${esc(k.text)}</p><p class="a">${esc(k.exp)}</p></div>`;
+  };
+  qin.innerHTML=`<div class="qbar"><button class="x" id="qx" aria-label="閉じる">✕</button><span class="where">${fmt==="ox"?"○×":"本番4択"} ・ ${min}分</span></div>
+  <div class="res"><span class="big num">${c}</span><span class="of num">/${a.length}</span></div>
+  <div class="stats"><div class="stat"><div class="v num">${a.length?Math.round(c/a.length*100):0}%</div><div class="k">正答率</div></div><div class="stat"><div class="v num">${wrong.length}</div><div class="k">間違えた問題</div></div><div class="stat"><div class="v num">${min}</div><div class="k">分</div></div></div>
+  ${wrong.length?`<span class="label">間違えた問題</span><div class="wl">${wrong.map(wItem).join("")}</div>`:`<div class="empty"><b>全問正解です。</b></div>`}
+  <div class="spacer"></div>
+  ${wrong.length?`<button class="btn" id="rt">間違えた${wrong.length}問を解き直す</button>`:""}
+  <button class="btn sub" id="done">アクティビティを見る</button>`;
+  const items=wrong.map(x=>x.item);
+  qin.querySelector("#qx").onclick=closeRun;
+  qin.querySelector("#done").onclick=()=>{tab="activity";act.range="week";act.offset=0;act.sel=null;closeRun()};
+  const rt=qin.querySelector("#rt");if(rt)rt.onclick=()=>startRun({fmt,list:items});
+  run.open=false;run.done=true;qEl.scrollTo(0,0);
+}
+document.addEventListener("keydown",e=>{
+  if(!run||run.done||e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key.toLowerCase();
+  if(run.open&&run.fmt==="ox"&&(k==="o"||k==="1"))answerOX(true);
+  else if(run.open&&run.fmt==="ox"&&(k==="x"||k==="2"))answerOX(false);
+  else if(run.open&&run.fmt==="mc"&&/^[1-4]$/.test(k))answerMC(+k);
+  else if(!run.open&&k==="enter"&&document.activeElement?.id!=="nx"){e.preventDefault();next()}
+});
+
+/* ================= 設定 ================= */
+function renderSettings(){
+  const el=document.getElementById("v-settings");
+  el.innerHTML=`
+  <h1 class="title">設定</h1>
+  <div class="field"><label class="label" for="url">GASのウェブアプリURL</label><input id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(cfg.url)}"></div>
+  <div class="field"><label class="label" for="key">合言葉</label><input id="key" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(cfg.key)}"></div>
+  <button class="btn" id="save">保存して接続</button>
+  <div id="st"></div>
+  <div>
+    <div class="kv"><span>問題データ</span><span>${QS.length}問 ／ ○× ${ITEMS.length}</span></div>
+    <div class="kv"><span>最後に同期</span><span>${lastSync?nowStr(lastSync):"—"}</span></div>
+    <div class="kv"><span>未送信の記録</span><span>${pending.length}件</span></div>
+    <div class="kv"><span>この端末の記録</span><span>${logs.length}問</span></div>
+  </div>
+  <button class="btn sub" id="sync">今すぐ同期</button>
+  <button class="btn sub" id="clr">この端末の記録を消す</button>
+  <p class="fine">試験問題：公益財団法人 建築技術教育普及センターが公表した一級建築士試験「学科の試験」の問題と正答肢を、個人の学習のために利用しています。試験実施時の内容のため、現在の法令・基準と一致しない場合があります。解説は学習用に作成したものです。余白の「改題」は、出題時から数値などを変えた問題を示します。</p>
+  <p class="fine">記録はこの端末とスプレッドシートの両方に保存されます。「この端末の記録を消す」を押しても、スプレッドシートの記録は残り、次の同期で戻ります。</p>`;
+  const st=el.querySelector("#st");
+  el.querySelector("#save").onclick=async()=>{
+    cfg={url:el.querySelector("#url").value.trim(),key:el.querySelector("#key").value.trim()};ls.set("gk_cfg",cfg);
+    st.innerHTML=`<div class="status">接続しています…</div>`;
+    try{const j=await api({action:"ping"});st.innerHTML=`<div class="status ok">接続できました（問題データ ${j.questions}行）。同期しています…</div>`;await syncAll(false);renderSettings();toast("接続しました")}
+    catch(e){st.innerHTML=`<div class="status ng">${e.message==="auth"?"合言葉が違います。GASで showPasscode を実行して確認してください。":"接続できませんでした。URLが「/exec」で終わっているか、デプロイのアクセス権が「全員」になっているか確認してください。"}</div>`}
+  };
+  el.querySelector("#sync").onclick=async()=>{await syncAll(true);renderSettings()};
+  const clr=el.querySelector("#clr");
+  clr.onclick=()=>{if(clr.dataset.armed){logs=[];pending=[];flags={};saveLogs();ls.set("gk_flags",flags);renderSettings();toast("この端末の記録を消しました")}else{clr.dataset.armed="1";clr.textContent="もう一度押すと消します"}};
+}
+
+/* ================= 起動 ================= */
+buildModel();
+render();
+if(cfg.url)syncAll(false);
+window.addEventListener("online",flush);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")flush()});
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
