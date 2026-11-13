@@ -1,6 +1,6 @@
 // 画面ファイルをキャッシュしてオフラインでも開けるようにする。
 // 問題データと学習記録はアプリ側（端末内の保存領域）で持つので、ここではキャッシュしない。
-const CACHE = "gakka-v2";
+const CACHE = "gakka-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

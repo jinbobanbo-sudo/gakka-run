@@ -172,6 +172,38 @@ select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft)
 .wi .a{color:var(--muted);font-size:.84rem}
 .wi .a b{color:var(--ng)}
 
+
+/* ---------- toc ---------- */
+.ov{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft)}
+.sbar i{display:block;height:100%}
+.sbar .g{background:var(--ok)} .sbar .r{background:var(--ng)}
+.chs{display:flex;flex-direction:column}
+.ch{border-top:1px solid var(--line)}
+.chs .ch:last-child{border-bottom:1px solid var(--line)}
+.chh{width:100%;display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;padding:14px 0}
+.chh .n{font-family:var(--f-num);font-size:1.5rem;font-weight:800;line-height:1;color:var(--muted)}
+.chh .t{font-weight:800;font-size:1rem;line-height:1.35}
+.chh .m{grid-column:2;font-size:.74rem;color:var(--muted)}
+.chh .p{grid-row:1/3;grid-column:3;text-align:right}
+.chh .p .v{font-size:1.5rem;font-weight:700;line-height:1}
+.chh .p .k{font-size:.66rem;color:var(--muted);font-weight:700}
+.chh .sbar{grid-column:2/4}
+.chb{display:flex;flex-direction:column;gap:12px;padding:0 0 16px 40px}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.acts button{background:var(--inv-bg);color:var(--inv-fg);border-radius:999px;padding:9px 14px;font-size:.82rem;font-weight:800}
+.acts button.sub{background:var(--soft);color:var(--fg)}
+.acts button:disabled{opacity:.3;cursor:default}
+.tps{display:flex;flex-direction:column}
+.tp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;text-align:left;padding:10px 0;border-top:1px dashed var(--line);width:100%}
+.tp .nm{font-size:.9rem;font-weight:700;min-width:0}
+.tp .mk{display:inline-flex;gap:4px;margin-left:6px;vertical-align:1px}
+.tp .mk span{font-size:.62rem;font-weight:800;border-radius:3px;padding:0 5px;border:1.2px solid currentColor}
+.tp .mk .h{background:var(--fg);color:var(--bg);border-color:var(--fg)} .tp .mk .i{color:var(--c-struct)}
+.tp .c{font-size:.76rem;color:var(--muted);font-weight:700;text-align:right;white-space:nowrap}
+.tp .sbar{grid-column:1/-1;height:5px}
+.dots{display:flex;gap:3px;flex-wrap:wrap}
+
 /* ---------- settings ---------- */
 .field{display:flex;flex-direction:column;gap:6px}
 .field input{background:var(--soft);border:0;border-radius:12px;padding:12px 14px;width:100%;font-size:.95rem}
@@ -191,11 +223,13 @@ select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft)
 <main>
   <section class="view" id="v-activity"></section>
   <section class="view" id="v-train" hidden></section>
+  <section class="view" id="v-toc" hidden></section>
   <section class="view" id="v-settings" hidden></section>
 </main>
 <nav class="tabbar" aria-label="タブ"><div class="in">
   <button class="tab" data-tab="activity" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>アクティビティ</button>
   <button class="tab" data-tab="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5zM13 4h5.5c.8 0 1.5.7 1.5 1.5v13c0 .8-.7 1.5-1.5 1.5H13z"/></svg>トレーニング</button>
+  <button class="tab" data-tab="toc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>目次</button>
   <button class="tab" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>設定</button>
 </div></nav>
 <div class="quiz" id="quiz" hidden><div class="in" id="qin"></div></div>
@@ -211,6 +245,24 @@ const SUBJ=[
   {key:"const",no:"学科Ⅴ",name:"施工",short:"施工",exam:25}
 ];
 const S=k=>SUBJ.find(s=>s.key===k);
+/* 見出し（目次）：科目ごとの章。論点キー「分野:論点」の分野から章を決める */
+const CHAPTERS={
+  plan:[["日本建築史",["日本建築史"]],["西洋建築史・建築論",["西洋建築史","建築論"]],["近現代の作品・保存再生",["作品"]],["住宅・集合住宅・住宅地",["住宅","住宅地"]],["各種建築物（事務所・学校・医療福祉・文化・商業）",["事務所","学校","医療","福祉","文化施設","商業","庁舎"]],["寸法・規模",["寸法"]],["バリアフリー・ユニバーサルデザイン",["バリアフリー"]],["計画の用語・環境心理",["計画用語"]],["都市計画・まちづくり",["都市制度","都市計画史","都市計画"]],["建築各部・構法・材料",["建築各部","木材","材料","ガラス","木造計画"]],["環境配慮・省エネ・設備計画",["環境","断熱","熱","光","音","空気","色彩","振動","設備"]],["防災計画",["防災"]],["ストック・マネジメント・積算",["ストック","マネジメント","積算"]],["倫理・業務・法令・約款",["倫理","業務","約款","法令"]]],
+  env:[["熱・湿気・断熱",["熱","断熱"]],["空気・換気",["空気"]],["光・日照・照明",["光"]],["色彩",["色彩"]],["音",["音"]],["空調・熱源設備",["設備"]],["給排水衛生設備",["給排水"]],["電気・昇降機",["電気"]],["防災・消防設備",["防災","防災設備"]],["環境配慮・省エネ",["環境","ストック","マネジメント","事務所","医療"]]],
+  struct:[["荷重・外力・振動",["荷重","振動"]],["耐震設計・構造計画",["耐震","構造計画","住宅","建築各部","設備"]],["鉄筋コンクリート造",["RC"]],["鉄骨造・接合",["S造","高力ボルト","溶接"]],["木造",["木造","木工事"]],["各種構造（SRC・CFT・PC・壁式ほか）",["各種構造","PC","PCa"]],["免震・制振",["免震","制振"]],["地盤・基礎",["地盤","地盤調査","基礎","山留め"]],["材料（コンクリート・鋼材・木材）",["コンクリート","鋼材","木材","材料","鉄筋","環境"]],["耐震改修",["耐震改修"]]],
+  const:[["施工計画・管理・安全",["施工計画","材料保管","安全"]],["法令・届出",["届出","法令"]],["契約・監理業務",["約款","業務"]],["地盤調査・仮設・土工事",["地盤調査","仮設","土工事","地盤","地盤改良","地業"]],["山留め",["山留め"]],["杭",["杭"]],["鉄筋",["鉄筋"]],["型枠・コンクリート",["型枠","コンクリート"]],["プレキャスト",["PCa"]],["鉄骨・溶接・高力ボルト",["鉄骨","溶接","高力ボルト"]],["木工事",["木工事","木造","木材"]],["防水・屋根",["防水","屋根"]],["仕上げ（左官・タイル・石・塗装・ガラス・内装ほか）",["左官","タイル","石","塗装","金属","ガラス","建具","内装","外装","断熱","建築各部"]],["設備工事",["設備工事","設備","防災設備","給排水","電気","空気","音","防災"]],["改修・耐震改修",["改修","耐震改修","耐震"]],["用語",["用語"]]]
+};
+const CH_KEY={"env|設備:昇降機":"電気・昇降機","env|設備:非常用エレベーター":"電気・昇降機"};
+const OTHER="その他";
+function chapterOf(sub,key){
+  if(CH_KEY[sub+"|"+key])return CH_KEY[sub+"|"+key];
+  const f=String(key||"").split(":")[0];
+  const c=(CHAPTERS[sub]||[]).find(([,fs])=>fs.includes(f));
+  return c?c[0]:OTHER;
+}
+const chNames=sub=>(CHAPTERS[sub]||[]).map(c=>c[0]);
+const topicName=k=>String(k||"").split(":").pop()||"（未分類）";
+
 const color=k=>`var(--c-${k})`;
 const era=y=>{y=+y;if(y>=2020)return"令和"+(y-2018)+"年";if(y===2019)return"令和元年";return"平成"+(y-1988)+"年"};
 const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -247,10 +299,11 @@ function buildModel(){
     const y=+r.exam_year,no=+r.no,qid=`${y}-${r.subject}-${pad(no)}`;
     if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,alt:+r.alt_choice||0,choices:[]});
     const q=map.get(qid);
-    q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",key:r.key||"",freq:+r.freq||0,imp:String(r.important)==="1",mc:String(r.mc_only)==="1",q});
+    q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",key:r.key||"",freq:+r.freq||0,imp:String(r.important)==="1",mc:String(r.mc_only)==="1",ch:chapterOf(r.subject,r.key),q});
   }
   QS=[...map.values()].filter(q=>S(q.s)).sort((a,b)=>b.y-a.y||SUBJ.indexOf(S(a.s))-SUBJ.indexOf(S(b.s))||a.no-b.no);
-  QS.forEach(q=>{q.choices.sort((a,b)=>a.choice-b.choice);q.rev=q.choices.some(c=>c.rev);q.mcOnly=q.choices.some(c=>c.mc);q.hot=Math.max(0,...q.choices.map(c=>c.freq));q.imp=q.choices.some(c=>c.imp)});
+  QS.forEach(q=>{q.choices.sort((a,b)=>a.choice-b.choice);q.rev=q.choices.some(c=>c.rev);q.mcOnly=q.choices.some(c=>c.mc);q.hot=Math.max(0,...q.choices.map(c=>c.freq));q.imp=q.choices.some(c=>c.imp);
+    const cnt={};q.choices.forEach(c=>cnt[c.ch]=(cnt[c.ch]||0)+1);q.ch=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]||OTHER});
   ITEMS=QS.filter(q=>!q.mcOnly).flatMap(q=>q.choices);
 }
 function lastResult(qid){for(let i=logs.length-1;i>=0;i--)if(logs[i].qid===qid)return +logs[i].correct;return null}
@@ -297,8 +350,8 @@ let tab="activity";
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();window.scrollTo(0,0)});
 function render(){
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
-  for(const v of ["activity","train","settings"])document.getElementById("v-"+v).hidden=v!==tab;
-  if(tab==="activity")renderActivity();else if(tab==="train")renderTrain();else renderSettings();
+  for(const v of ["activity","train","toc","settings"])document.getElementById("v-"+v).hidden=v!==tab;
+  if(tab==="activity")renderActivity();else if(tab==="train")renderTrain();else if(tab==="toc")renderToc();else renderSettings();
 }
 let toastT;
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
@@ -390,10 +443,10 @@ function renderActivity(){
 }
 
 /* ================= トレーニング ================= */
-const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});if(!tr.focus)tr.focus="all";
+const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});if(!tr.focus)tr.focus="all";if(!tr.ch)tr.ch="all";
 const HOT=6,isHot=c=>c.freq>=HOT,isKeyC=c=>isHot(c)||c.imp;
-function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year)&&(tr.fmt!=="ox"||!q.mcOnly)&&(tr.focus==="all"||q.choices.some(isKeyC)))}
-function poolItems(pq){let it=pq.flatMap(q=>q.choices);if(tr.focus==="key")it=it.filter(isKeyC);return it}
+function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year)&&(tr.fmt!=="ox"||!q.mcOnly)&&(tr.focus==="all"||q.choices.some(isKeyC))&&(tr.ch==="all"||tr.subj==="all"||(tr.fmt==="ox"?q.choices.some(c=>c.ch===tr.ch):q.ch===tr.ch)))}
+function poolItems(pq){let it=pq.flatMap(q=>q.choices);if(tr.focus==="key")it=it.filter(isKeyC);if(tr.ch!=="all"&&tr.subj!=="all")it=it.filter(c=>c.ch===tr.ch);return it}
 function renderTrain(){
   const el=document.getElementById("v-train");
   if(!cfg.url||!QS.length){
@@ -410,13 +463,15 @@ function renderTrain(){
   <div class="bank"><div><div class="v num">${QS.length}</div><div class="k">過去問（4択）</div></div><div><div class="v num">${ITEMS.length}</div><div class="k">○×に分けた選択肢</div></div><div><div class="v num">${years.length}</div><div class="k">年度</div></div></div>
   <div class="subjects">${SUBJ.map(s=>{const k=QS.filter(q=>q.s===s.key).length;return`<button class="subj" data-s="${s.key}" aria-pressed="${tr.subj===s.key}"><span class="no"><i style="background:${color(s.key)}"></i>${s.no}</span><span class="nm">${s.name}</span><span class="ct">${k}問</span></button>`}).join("")}
    <button class="subj all" data-s="all" aria-pressed="${tr.subj==="all"}"><span class="nm">4科目まぜる</span><span class="ct">${QS.length}問</span></button></div>
+  ${tr.subj!=="all"?`<div class="field"><label class="label" for="chs">見出し</label><select id="chs"><option value="all">すべての見出し</option>${chNames(tr.subj).map((n,i)=>`<option value="${esc(n)}" ${tr.ch===n?"selected":""}>${i+1}. ${esc(n)}</option>`).join("")}</select></div>`:""}
   <div class="field"><label class="label" for="yr">年度</label><select id="yr"><option value="all">すべての年度</option>${years.map(y=>`<option value="${y}" ${tr.year===String(y)?"selected":""}>${era(y)}（${y}）</option>`).join("")}</select></div>
   <div class="field"><span class="label">形式</span><div class="seg">${[["ox","○×","選択肢を1つずつ"],["mc","本番4択","問題をそのまま"]].map(([k,l,s])=>`<button data-f="${k}" aria-pressed="${tr.fmt===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
   <div class="field"><span class="label">範囲</span><div class="seg">${[["all","すべて","全部の問題"],["key","頻出・重要だけ",`10年で${HOT}回以上＋重要論点`]].map(([k,l,s])=>`<button data-k="${k}" aria-pressed="${tr.focus===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
   <div class="field"><span class="label">出題数</span><div class="seg">${[["10","10問"],["all","全部"],["weak","苦手"]].map(([k,l])=>`<button data-c="${k}" aria-pressed="${tr.count===k}">${l}<small class="num">${k==="10"?Math.min(10,total):k==="all"?total:weakN}問</small></button>`).join("")}</div></div>
   <div class="startwrap"><button class="start" id="go" ${cnt?"":"disabled"}>START</button><p class="hint">${cnt?`${cnt}問 ・ ${tr.fmt==="ox"?"○×":"本番4択"}`:tr.count==="weak"?"苦手に入っている問題はまだありません":"この条件の問題はありません"}</p></div>`;
   const save=()=>{ls.set("gk_tr",tr);renderTrain()};
-  el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{tr.subj=b.dataset.s;save()});
+  el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(tr.subj!==b.dataset.s)tr.ch="all";tr.subj=b.dataset.s;save()});
+  const chs=el.querySelector("#chs");if(chs)chs.onchange=e=>{tr.ch=e.target.value;save()};
   el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{tr.fmt=b.dataset.f;save()});
   el.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{tr.count=b.dataset.c;save()});
   el.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{tr.focus=b.dataset.k;save()});
@@ -424,12 +479,75 @@ function renderTrain(){
   el.querySelector("#go").onclick=()=>startRun();
 }
 
+
+/* ================= 目次（見出しごとの進捗） ================= */
+const toc=ls.get("gk_toc",{subj:"plan",open:null,tp:null});
+function statusMap(){
+  const ox={},mc={};
+  for(const l of logs){if(l.mode==="mc")mc[l.qid]=+l.correct;else ox[l.qid]=+l.correct}
+  /* 肢の状態：○×の最新結果。○×で未回答なら、その問題を4択で解いた最新結果を当てる */
+  return c=>{if(flags[c.id]===true)return 0;if(c.id in ox)return ox[c.id];if(c.q.qid in mc)return mc[c.q.qid];return null};
+}
+function tally(cs,st){let g=0,r=0;for(const c of cs){const v=st(c);if(v===1)g++;else if(v===0)r++}return{n:cs.length,g,r,u:cs.length-g-r}}
+const bar=t=>`<div class="sbar" aria-hidden="true"><i class="g" style="width:${t.n?t.g/t.n*100:0}%"></i><i class="r" style="width:${t.n?t.r/t.n*100:0}%"></i></div>`;
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function renderToc(){
+  const el=document.getElementById("v-toc");
+  if(!QS.length){el.innerHTML=`<h1 class="title">目次</h1><div class="empty"><b>問題を読み込めていません。</b><br>設定タブで同期してください。</div>`;return}
+  const st=statusMap(),sub=toc.subj;
+  const subItems=ITEMS.filter(c=>c.q.s===sub),all=tally(subItems,st);
+  const names=chNames(sub);if(subItems.some(c=>c.ch===OTHER))names.push(OTHER);
+  const chs=names.map((nm,i)=>{
+    const cs=subItems.filter(c=>c.ch===nm),t=tally(cs,st);
+    const tps={};cs.forEach(c=>(tps[c.key]=tps[c.key]||[]).push(c));
+    const tpList=Object.entries(tps).map(([k,v])=>({k,v,t:tally(v,st),freq:v[0].freq,imp:v.some(c=>c.imp)})).sort((a,b)=>b.freq-a.freq||b.v.length-a.v.length);
+    const touched=tpList.filter(x=>x.t.g+x.t.r>0).length;
+    return{nm,i,cs,t,tpList,touched,mcN:QS.filter(q=>q.s===sub&&q.ch===nm).length};
+  });
+  el.innerHTML=`
+  <h1 class="title">目次</h1>
+  <div class="seg">${SUBJ.map(s=>`<button data-ts="${s.key}" aria-pressed="${sub===s.key}">${s.short}<small>${s.no}</small></button>`).join("")}</div>
+  <div class="ov"><div class="stat"><div class="v num">${pct(all.g,all.n)}%</div><div class="k">習得（直近で正解）</div></div><div class="stat"><div class="v num">${pct(all.g+all.r,all.n)}%</div><div class="k">着手</div></div><div class="stat"><div class="v num">${chs.reduce((a,c)=>a+c.touched,0)}<span style="font-size:1rem;color:var(--muted)">/${chs.reduce((a,c)=>a+c.tpList.length,0)}</span></div><div class="k">手をつけた論点</div></div></div>
+  ${bar(all)}
+  <p class="fine">緑＝直近で正解、赤＝直近で不正解か苦手、灰＝まだ解いていない肢。○×で未回答の肢には、その問題を4択で解いた結果を当てています。</p>
+  <div class="chs">${chs.map(c=>{const open=toc.open===sub+"|"+c.nm;return`
+   <div class="ch"><button class="chh" data-ch="${esc(c.nm)}" aria-expanded="${open}">
+     <span class="n">${c.nm===OTHER?"–":c.i+1}</span><span class="t">${esc(c.nm)}</span>
+     <span class="p"><span class="v num">${pct(c.t.g,c.t.n)}<small style="font-size:.8rem">%</small></span><br><span class="k">習得</span></span>
+     <span class="m">論点 ${c.touched}/${c.tpList.length} ・ 肢 ${c.t.g+c.t.r}/${c.t.n} ・ 頻出論点 ${c.tpList.filter(x=>x.freq>=HOT).length}</span>
+     ${bar(c.t)}</button>
+   ${open?`<div class="chb">
+     <div class="acts">
+       <button data-run="ox-un" ${c.t.n-c.t.g?"":"disabled"}>○× 未習得から${Math.min(20,c.t.n-c.t.g)}肢</button>
+       <button data-run="ox-all" class="sub">○× 全${c.t.n}肢</button>
+       <button data-run="mc" class="sub" ${c.mcN?"":"disabled"}>本番4択 ${c.mcN}問</button>
+     </div>
+     <div class="tps">${c.tpList.map(x=>`<button class="tp" data-tp="${esc(x.k)}"><span class="nm">${esc(topicName(x.k))}<span class="mk">${x.freq>=HOT?`<span class="h">頻出</span>`:""}${x.imp?`<span class="i">重要</span>`:""}</span></span><span class="c num">習得 ${x.t.g}/${x.t.n} ・ 出題 ${x.freq}/10年</span>${bar(x.t)}</button>`).join("")}</div>
+   </div>`:""}</div>`}).join("")}</div>
+  <p class="fine">見出しは過去問の論点を作成者が整理したもので、試験実施機関の公式な分類ではありません。論点名をタップすると、その論点だけを○×で解けます。</p>`;
+  const save=()=>{ls.set("gk_toc",toc);renderToc()};
+  el.querySelectorAll("[data-ts]").forEach(b=>b.onclick=()=>{toc.subj=b.dataset.ts;toc.open=null;save()});
+  el.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{const k=sub+"|"+b.dataset.ch;toc.open=toc.open===k?null:k;save()});
+  const cur=chs.find(c=>toc.open===sub+"|"+c.nm);
+  if(cur){
+    const oxPool=cur.cs.filter(c=>!c.q.mcOnly);
+    el.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>{
+      const m=b.dataset.run;
+      if(m==="mc")return startRun({fmt:"mc",list:QS.filter(q=>q.s===sub&&q.ch===cur.nm)});
+      if(m==="ox-all")return startRun({fmt:"ox",list:oxPool});
+      const un=shuffle(oxPool.filter(c=>st(c)!==1));
+      startRun({fmt:"ox",list:[...un.filter(c=>st(c)===0),...un.filter(c=>st(c)!==0)].slice(0,20),keep:true});
+    });
+    el.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>{const l=oxPool.filter(c=>c.key===b.dataset.tp);if(l.length)startRun({fmt:"ox",list:l})});
+  }
+}
+
 /* ================= 出題 ================= */
 let run=null;
 const qEl=document.getElementById("quiz"),qin=document.getElementById("qin");
 function startRun(retry){
   let list,fmt=retry?retry.fmt:tr.fmt;
-  if(retry)list=shuffle(retry.list);
+  if(retry)list=retry.keep?retry.list.slice():shuffle(retry.list);
   else{
     const pq=poolQ();
     if(fmt==="ox"){let it=poolItems(pq);if(tr.count==="weak")it=it.filter(i=>isWeak(i.id));list=shuffle(it)}
@@ -457,7 +575,7 @@ function ask(){
   if(run.fmt==="mc")return askMC();
   const it=run.list[run.i],q=it.q;
   qin.innerHTML=`${head()}
-  <div class="paper">${margin(q,it.choice,it.rev,it.freq,it.imp)}<div class="body"><span class="topic">${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
+  <div class="paper">${margin(q,it.choice,it.rev,it.freq,it.imp)}<div class="body"><span class="topic">${esc(it.ch)} ／ ${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
   <div class="ox"><button data-v="1"><span class="s">○</span><span class="c">正しい</span></button><button data-v="0"><span class="s">×</span><span class="c">誤り</span></button></div>
   <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
   bindHead();
