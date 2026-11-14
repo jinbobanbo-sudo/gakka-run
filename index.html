@@ -21,7 +21,7 @@
 :root{
   --bg:#FFFFFF; --fg:#111111; --muted:#767676; --soft:#F4F4F4; --line:#E6E6E6; --inv-bg:#111111; --inv-fg:#FFFFFF;
   --ok:#128A4A; --ng:#D4342C; --okSoft:#E7F5EC; --ngSoft:#FCEAE8;
-  --c-plan:#2F6BFF; --c-env:#14A46C; --c-struct:#F2A20C; --c-const:#E5484D;
+  --c-plan:#2F6BFF; --c-env:#14A46C; --c-law:#8B5CF6; --c-struct:#F2A20C; --c-const:#E5484D;
   --f-num:"Barlow Condensed","Helvetica Neue","Arial Narrow",sans-serif;
   --f-body:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
   --tab-h:58px;
@@ -30,7 +30,7 @@
 @media (prefers-color-scheme:dark){:root{
   --bg:#000000; --fg:#F5F5F5; --muted:#9A9A9A; --soft:#151515; --line:#2A2A2A; --inv-bg:#F5F5F5; --inv-fg:#000000;
   --ok:#3CC77C; --ng:#FF6B62; --okSoft:#0F2A1B; --ngSoft:#2E1311;
-  --c-plan:#5B8CFF; --c-env:#2CC287; --c-struct:#FFB52E; --c-const:#FF6A6E; color-scheme:dark}}
+  --c-plan:#5B8CFF; --c-env:#2CC287; --c-law:#A78BFA; --c-struct:#FFB52E; --c-const:#FF6A6E; color-scheme:dark}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
@@ -173,6 +173,16 @@ select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft)
 .wi .a b{color:var(--ng)}
 
 
+/* ---------- figure ---------- */
+.fig{margin:0;border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px;display:flex;justify-content:center;min-height:60px;align-items:center}
+.fig img{max-width:100%;height:auto;display:block}
+.fig .ph{font-size:.8rem;color:#666;text-align:center;padding:16px}
+.fig img{cursor:zoom-in}
+.fig figcaption{font-size:.7rem;color:#888;text-align:center;margin-top:4px}
+.zoom{position:fixed;inset:0;z-index:30;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch}
+.zoom img{display:block;width:220%;max-width:none;height:auto}
+.zoom button{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:14px;width:44px;height:44px;border-radius:50%;background:#222;color:#fff;font-size:1.1rem;z-index:31}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fig{border-color:#444}}
 /* ---------- toc ---------- */
 .ov{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .sbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft)}
@@ -241,6 +251,7 @@ select{width:100%;appearance:none;-webkit-appearance:none;background:var(--soft)
 const SUBJ=[
   {key:"plan",no:"学科Ⅰ",name:"計画",short:"計画",exam:20},
   {key:"env",no:"学科Ⅱ",name:"環境・設備",short:"環境設備",exam:20},
+  {key:"law",no:"学科Ⅲ",name:"法規",short:"法規",exam:30},
   {key:"struct",no:"学科Ⅳ",name:"構造（計算以外）",short:"構造",exam:30},
   {key:"const",no:"学科Ⅴ",name:"施工",short:"施工",exam:25}
 ];
@@ -250,6 +261,7 @@ const CHAPTERS={
   plan:[["日本建築史",["日本建築史"]],["西洋建築史・建築論",["西洋建築史","建築論"]],["近現代の作品・保存再生",["作品"]],["住宅・集合住宅・住宅地",["住宅","住宅地"]],["各種建築物（事務所・学校・医療福祉・文化・商業）",["事務所","学校","医療","福祉","文化施設","商業","庁舎"]],["寸法・規模",["寸法"]],["バリアフリー・ユニバーサルデザイン",["バリアフリー"]],["計画の用語・環境心理",["計画用語"]],["都市計画・まちづくり",["都市制度","都市計画史","都市計画"]],["建築各部・構法・材料",["建築各部","木材","材料","ガラス","木造計画"]],["環境配慮・省エネ・設備計画",["環境","断熱","熱","光","音","空気","色彩","振動","設備"]],["防災計画",["防災"]],["ストック・マネジメント・積算",["ストック","マネジメント","積算"]],["倫理・業務・法令・約款",["倫理","業務","約款","法令"]]],
   env:[["熱・湿気・断熱",["熱","断熱"]],["空気・換気",["空気"]],["光・日照・照明",["光"]],["色彩",["色彩"]],["音",["音"]],["空調・熱源設備",["設備"]],["給排水衛生設備",["給排水"]],["電気・昇降機",["電気"]],["防災・消防設備",["防災","防災設備"]],["環境配慮・省エネ",["環境","ストック","マネジメント","事務所","医療"]]],
   struct:[["荷重・外力・振動",["荷重","振動"]],["耐震設計・構造計画",["耐震","構造計画","住宅","建築各部","設備"]],["鉄筋コンクリート造",["RC"]],["鉄骨造・接合",["S造","高力ボルト","溶接"]],["木造",["木造","木工事"]],["各種構造（SRC・CFT・PC・壁式ほか）",["各種構造","PC","PCa"]],["免震・制振",["免震","制振"]],["地盤・基礎",["地盤","地盤調査","基礎","山留め"]],["材料（コンクリート・鋼材・木材）",["コンクリート","鋼材","木材","材料","鉄筋","環境"]],["耐震改修",["耐震改修"]]],
+  law:[["用語・面積・高さ",["用語","面積・高さ"]],["手続き（確認・検査・既存建築物）",["手続き"]],["一般構造・建築設備",["一般構造","建築設備"]],["避難施設等",["避難"]],["防火・内装制限",["防火","内装制限"]],["構造強度",["構造強度"]],["道路・用途制限",["道路","用途制限"]],["形態規制（容積率・建蔽率・高さ）",["形態規制"]],["防火地域・準防火地域",["防火地域"]],["地区計画・建築協定ほか",["その他規定"]],["建築士法",["建築士法"]],["都市計画法",["都市計画法"]],["消防法",["消防法"]],["バリアフリー法",["バリアフリー法"]],["建築物省エネ法",["省エネ法"]],["耐震改修促進法・品確法・その他",["耐震改修促進法","品確法","その他法令","建設業法"]]],
   const:[["施工計画・管理・安全",["施工計画","材料保管","安全"]],["法令・届出",["届出","法令"]],["契約・監理業務",["約款","業務"]],["地盤調査・仮設・土工事",["地盤調査","仮設","土工事","地盤","地盤改良","地業"]],["山留め",["山留め"]],["杭",["杭"]],["鉄筋",["鉄筋"]],["型枠・コンクリート",["型枠","コンクリート"]],["プレキャスト",["PCa"]],["鉄骨・溶接・高力ボルト",["鉄骨","溶接","高力ボルト"]],["木工事",["木工事","木造","木材"]],["防水・屋根",["防水","屋根"]],["仕上げ（左官・タイル・石・塗装・ガラス・内装ほか）",["左官","タイル","石","塗装","金属","ガラス","建具","内装","外装","断熱","建築各部"]],["設備工事",["設備工事","設備","防災設備","給排水","電気","空気","音","防災"]],["改修・耐震改修",["改修","耐震改修","耐震"]],["用語",["用語"]]]
 };
 const CH_KEY={"env|設備:昇降機":"電気・昇降機","env|設備:非常用エレベーター":"電気・昇降機"};
@@ -297,7 +309,7 @@ function buildModel(){
   const rows=qcache.h?qcache.d.map(a=>Object.fromEntries(qcache.h.map((k,i)=>[k,a[i]]))):qcache.rows;
   for(const r of rows){
     const y=+r.exam_year,no=+r.no,qid=`${y}-${r.subject}-${pad(no)}`;
-    if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,alt:+r.alt_choice||0,choices:[]});
+    if(!map.has(qid))map.set(qid,{qid,y,s:r.subject,no,topic:r.topic,stem:r.stem,type:r.type,ans:+r.correct_choice,alt:+r.alt_choice||0,img:r.img||"",imgC:String(r.img_choices)==="1",noMc:String(r.no_mc)==="1",choices:[]});
     const q=map.get(qid);
     q.choices.push({id:r.id,choice:+r.choice,text:r.statement,truth:r.truth==="○",exp:r.explanation,rev:String(r.revised).toUpperCase()==="TRUE",note:r.revised_note||"",key:r.key||"",freq:+r.freq||0,imp:String(r.important)==="1",mc:String(r.mc_only)==="1",ch:chapterOf(r.subject,r.key),q});
   }
@@ -308,6 +320,28 @@ function buildModel(){
 }
 function lastResult(qid){for(let i=logs.length-1;i>=0;i--)if(logs[i].qid===qid)return +logs[i].correct;return null}
 const isWeak=id=>flags[id]===true||(flags[id]!==false&&lastResult(id)===0);
+
+/* ================= 図（画像） ================= */
+// 図は公開リポジトリに置かず、スプレッドシートの images シートからGAS経由で取得して端末（IndexedDB）に保存する
+const IMG={mem:new Map(),db:null,wait:new Map(),queue:new Set(),timer:null};
+function imgDB(){if(IMG.db)return IMG.db;IMG.db=new Promise(res=>{try{const r=indexedDB.open("gakka",1);r.onupgradeneeded=()=>r.result.createObjectStore("img");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});return IMG.db}
+async function idbGet(id){const db=await imgDB();if(!db)return null;return new Promise(res=>{try{const t=db.transaction("img").objectStore("img").get(id);t.onsuccess=()=>res(t.result||null);t.onerror=()=>res(null)}catch(e){res(null)}})}
+async function idbPut(id,v){const db=await imgDB();if(!db)return;try{db.transaction("img","readwrite").objectStore("img").put(v,id)}catch(e){}}
+async function getImg(id){
+  if(IMG.mem.has(id))return IMG.mem.get(id);
+  const c=await idbGet(id);if(c){IMG.mem.set(id,c);return c}
+  return new Promise(res=>{if(!IMG.wait.has(id))IMG.wait.set(id,[]);IMG.wait.get(id).push(res);IMG.queue.add(id);clearTimeout(IMG.timer);IMG.timer=setTimeout(pullImgs,30)});
+}
+async function pullImgs(){
+  const ids=[...IMG.queue].slice(0,20);ids.forEach(i=>IMG.queue.delete(i));
+  let got={};try{const j=await api({action:"images",ids});IMG.unsupported=!("images" in j);got=j.images||{}}catch(e){}
+  for(const id of ids){const v=got[id]||null;if(v){IMG.mem.set(id,v);idbPut(id,v)}(IMG.wait.get(id)||[]).forEach(f=>f(v));IMG.wait.delete(id)}
+  if(IMG.queue.size)pullImgs();
+}
+const figHtml=q=>q.img?`<figure class="fig" data-img="${esc(q.img)}"><div class="ph">図を読み込み中…</div></figure>`:"";
+function fillFigs(root){root.querySelectorAll(".fig[data-img]").forEach(async f=>{const id=f.dataset.img;const v=await getImg(id);if(!f.isConnected)return;f.innerHTML=v?`<img src="${v}" alt="問題の図"><figcaption>タップで拡大</figcaption>`:(IMG.unsupported?`<div class="ph">図の配信は準備中です（スプレッドシート側の更新待ち）。</div>`:`<div class="ph">図を表示できませんでした。<br>ネット接続を確認するか、設定タブで同期してください。</div>`)})}
+document.addEventListener("click",e=>{const im=e.target.closest(".fig img");if(!im)return;const z=document.createElement("div");z.className="zoom";z.innerHTML=`<img src="${im.src}" alt="問題の図（拡大）"><button aria-label="閉じる">✕</button>`;z.querySelector("button").onclick=()=>z.remove();document.body.appendChild(z)});
+async function prefetchImgs(){const ids=[...new Set(QS.map(q=>q.img).filter(Boolean))];for(const id of ids){if(IMG.mem.has(id))continue;const c=await idbGet(id);if(c){IMG.mem.set(id,c);continue}IMG.queue.add(id)}if(IMG.queue.size)pullImgs()}
 
 /* ================= 通信 ================= */
 async function api(body){
@@ -332,9 +366,15 @@ async function flush(){
 async function syncAll(manual){
   if(!cfg.url){if(manual)toast("先に接続先を設定してください");return false}
   try{
-    const [q,l]=await Promise.all([api({action:"questions"}),api({action:"logs"})]);
-    const h=q.questions.length?Object.keys(q.questions[0]):[];
-    qcache={h,d:q.questions.map(r=>h.map(k=>r[k])),at:new Date().toISOString()};ls.set("gk_q",qcache);buildModel();
+    let meta={};try{meta=await api({action:"meta"})}catch(e){}
+    const same=!manual&&meta.meta&&meta.version&&meta.version===qcache.ver&&(qcache.d||[]).length;
+    const [q,l]=await Promise.all([same?null:api({action:"questions",compact:true}),api({action:"logs"})]);
+    if(q){
+      if(q.compact)qcache={h:q.compact.h,d:q.compact.d,ver:meta.version||"",at:new Date().toISOString()};
+      else{const h=q.questions.length?Object.keys(q.questions[0]):[];qcache={h,d:q.questions.map(r=>h.map(k=>r[k])),ver:"",at:new Date().toISOString()}}
+      ls.set("gk_q",qcache);buildModel();
+    }
+    setTimeout(prefetchImgs,500);
     const have=new Set(logs.map(x=>x.uid));
     for(const x of l.logs){if(!have.has(String(x.uid))){logs.push({...x,uid:String(x.uid),correct:+x.correct,date:String(x.date).slice(0,10)})}}
     logs.sort((a,b)=>String(a.ts).localeCompare(String(b.ts)));
@@ -433,7 +473,7 @@ function renderActivity(){
   <div class="legend">${bySub.map(({s,v})=>`<div class="it"><span class="dot" style="background:${color(s.key)}"></span><span class="nm">${s.short}</span><span class="ct num">${v}</span></div>`).join("")}</div>
   <div class="row"><span class="label">最近のトレーニング</span></div>
   ${sess.length?`<div class="list">${sess.map(s=>{const tot=s.n;return`<div class="sess"><div class="bars">${SUBJ.map(x=>`<i style="height:${Math.max(6,(s.by[x.key]||0)/tot*100)}%;background:${s.by[x.key]?color(x.key):"var(--line)"}"></i>`).join("")}</div>
-      <div><div class="t">${Object.keys(s.by).length>=4?"4科目":SUBJ.filter(x=>s.by[x.key]).map(x=>x.short).join("・")}</div><div class="d">${s.mode==="mc"?"本番4択":"○×"} ・ ${nowStr(s.ts)}</div></div>
+      <div><div class="t">${Object.keys(s.by).length>=SUBJ.length?"全科目":SUBJ.filter(x=>s.by[x.key]).map(x=>x.short).join("・")}</div><div class="d">${s.mode==="mc"?"本番4択":"○×"} ・ ${nowStr(s.ts)}</div></div>
       <div class="r"><div class="v num">${s.c}/${s.n}</div><div class="k">正解</div></div></div>`}).join("")}</div>`
    :`<div class="empty"><b>まだ記録がありません。</b><br>トレーニングタブから解くと、ここに日ごと・科目ごとの問題数が積み上がります。</div>`}`;
   el.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{act.range=b.dataset.r;act.offset=0;act.sel=null;renderActivity()});
@@ -445,7 +485,7 @@ function renderActivity(){
 /* ================= トレーニング ================= */
 const tr=ls.get("gk_tr",{subj:"all",year:"all",fmt:"ox",count:"10"});if(!tr.focus)tr.focus="all";if(!tr.ch)tr.ch="all";
 const HOT=6,isHot=c=>c.freq>=HOT,isKeyC=c=>isHot(c)||c.imp;
-function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year)&&(tr.fmt!=="ox"||!q.mcOnly)&&(tr.focus==="all"||q.choices.some(isKeyC))&&(tr.ch==="all"||tr.subj==="all"||(tr.fmt==="ox"?q.choices.some(c=>c.ch===tr.ch):q.ch===tr.ch)))}
+function poolQ(){return QS.filter(q=>(tr.subj==="all"||q.s===tr.subj)&&(tr.year==="all"||String(q.y)===tr.year)&&(tr.fmt!=="ox"||!q.mcOnly)&&(tr.fmt==="ox"||!q.noMc)&&(tr.focus==="all"||q.choices.some(isKeyC))&&(tr.ch==="all"||tr.subj==="all"||(tr.fmt==="ox"?q.choices.some(c=>c.ch===tr.ch):q.ch===tr.ch)))}
 function poolItems(pq){let it=pq.flatMap(q=>q.choices);if(tr.focus==="key")it=it.filter(isKeyC);if(tr.ch!=="all"&&tr.subj!=="all")it=it.filter(c=>c.ch===tr.ch);return it}
 function renderTrain(){
   const el=document.getElementById("v-train");
@@ -462,7 +502,7 @@ function renderTrain(){
   <h1 class="title">トレーニング</h1>
   <div class="bank"><div><div class="v num">${QS.length}</div><div class="k">過去問（4択）</div></div><div><div class="v num">${ITEMS.length}</div><div class="k">○×に分けた選択肢</div></div><div><div class="v num">${years.length}</div><div class="k">年度</div></div></div>
   <div class="subjects">${SUBJ.map(s=>{const k=QS.filter(q=>q.s===s.key).length;return`<button class="subj" data-s="${s.key}" aria-pressed="${tr.subj===s.key}"><span class="no"><i style="background:${color(s.key)}"></i>${s.no}</span><span class="nm">${s.name}</span><span class="ct">${k}問</span></button>`}).join("")}
-   <button class="subj all" data-s="all" aria-pressed="${tr.subj==="all"}"><span class="nm">4科目まぜる</span><span class="ct">${QS.length}問</span></button></div>
+   <button class="subj all" data-s="all" aria-pressed="${tr.subj==="all"}"><span class="nm">全科目まぜる</span><span class="ct">${QS.length}問</span></button></div>
   ${tr.subj!=="all"?`<div class="field"><label class="label" for="chs">見出し</label><select id="chs"><option value="all">すべての見出し</option>${chNames(tr.subj).map((n,i)=>`<option value="${esc(n)}" ${tr.ch===n?"selected":""}>${i+1}. ${esc(n)}</option>`).join("")}</select></div>`:""}
   <div class="field"><label class="label" for="yr">年度</label><select id="yr"><option value="all">すべての年度</option>${years.map(y=>`<option value="${y}" ${tr.year===String(y)?"selected":""}>${era(y)}（${y}）</option>`).join("")}</select></div>
   <div class="field"><span class="label">形式</span><div class="seg">${[["ox","○×","選択肢を1つずつ"],["mc","本番4択","問題をそのまま"]].map(([k,l,s])=>`<button data-f="${k}" aria-pressed="${tr.fmt===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
@@ -502,7 +542,7 @@ function renderToc(){
     const tps={};cs.forEach(c=>(tps[c.key]=tps[c.key]||[]).push(c));
     const tpList=Object.entries(tps).map(([k,v])=>({k,v,t:tally(v,st),freq:v[0].freq,imp:v.some(c=>c.imp)})).sort((a,b)=>b.freq-a.freq||b.v.length-a.v.length);
     const touched=tpList.filter(x=>x.t.g+x.t.r>0).length;
-    return{nm,i,cs,t,tpList,touched,mcN:QS.filter(q=>q.s===sub&&q.ch===nm).length};
+    return{nm,i,cs,t,tpList,touched,mcN:QS.filter(q=>q.s===sub&&q.ch===nm&&!q.noMc).length};
   });
   el.innerHTML=`
   <h1 class="title">目次</h1>
@@ -533,7 +573,7 @@ function renderToc(){
     const oxPool=cur.cs.filter(c=>!c.q.mcOnly);
     el.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>{
       const m=b.dataset.run;
-      if(m==="mc")return startRun({fmt:"mc",list:QS.filter(q=>q.s===sub&&q.ch===cur.nm)});
+      if(m==="mc")return startRun({fmt:"mc",list:QS.filter(q=>q.s===sub&&q.ch===cur.nm&&!q.noMc)});
       if(m==="ox-all")return startRun({fmt:"ox",list:oxPool});
       const un=shuffle(oxPool.filter(c=>st(c)!==1));
       startRun({fmt:"ox",list:[...un.filter(c=>st(c)===0),...un.filter(c=>st(c)!==0)].slice(0,20),keep:true});
@@ -575,12 +615,12 @@ function ask(){
   if(run.fmt==="mc")return askMC();
   const it=run.list[run.i],q=it.q;
   qin.innerHTML=`${head()}
-  <div class="paper">${margin(q,it.choice,it.rev,it.freq,it.imp)}<div class="body"><span class="topic">${esc(it.ch)} ／ ${esc(q.topic)}</span><p class="stmt">${esc(it.text)}</p>
+  <div class="paper">${margin(q,it.choice,it.rev,it.freq,it.imp)}<div class="body"><span class="topic">${esc(it.ch)} ／ ${esc(q.topic)}</span>${figHtml(q)}<p class="stmt">${esc(it.text)}</p>
   <div class="ox"><button data-v="1"><span class="s">○</span><span class="c">正しい</span></button><button data-v="0"><span class="s">×</span><span class="c">誤り</span></button></div>
   <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
   bindHead();
   qin.querySelectorAll(".ox button").forEach(b=>b.onclick=()=>answerOX(b.dataset.v==="1"));
-  qEl.scrollTo(0,0);
+  fillFigs(qin);qEl.scrollTo(0,0);
 }
 function bindHead(){qin.querySelector("#qx").onclick=()=>run.ans.length?result():closeRun()}
 function record(qid,subject,ok){
@@ -604,12 +644,12 @@ function answerOX(v){
 function askMC(){
   const q=run.list[run.i];
   qin.innerHTML=`${head()}
-  <div class="paper">${margin(q,0,q.rev,q.hot,q.imp)}<div class="body"><p class="stem">${esc(q.stem)}</p>
+  <div class="paper">${margin(q,0,q.rev,q.hot,q.imp)}<div class="body"><p class="stem">${esc(q.stem)}</p>${figHtml(q)}
   <div class="opts">${q.choices.map(c=>`<button class="opt" data-c="${c.choice}"><span class="n">${c.choice}</span><span>${esc(c.text)}</span></button>`).join("")}</div>
   <div id="after" style="display:flex;flex-direction:column;gap:14px"></div></div></div>`;
   bindHead();
   qin.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answerMC(+b.dataset.c));
-  qEl.scrollTo(0,0);
+  fillFigs(qin);qEl.scrollTo(0,0);
 }
 function answerMC(n){
   if(!run||!run.open)return;run.open=false;
